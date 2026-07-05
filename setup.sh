@@ -19,7 +19,7 @@ echo -e "${BLUE}===============================================${NC}"
 # 1. System updates & core dependencies
 echo -e "\n${GREEN}[1/9] Updating system packages & installing core tools...${NC}"
 sudo apt-get update
-sudo apt-get install -y curl git build-essential openssl unzip
+sudo apt-get install -y curl git build-essential openssl unzip chromium-browser
 
 # 2. Install Node.js v20 (LTS)
 echo -e "\n${GREEN}[2/9] Installing Node.js v20 (LTS)...${NC}"
@@ -75,6 +75,9 @@ fi
 
 # 6. Install App Dependencies & Generate DB Schema
 echo -e "\n${GREEN}[6/9] Installing project dependencies & setting up database...${NC}"
+# Skip Puppeteer's bundled Chrome download - we use system Chromium instead
+export PUPPETEER_SKIP_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser || which chromium || echo "/usr/bin/chromium-browser")
 npm install
 
 echo -e "Running database migrations & generating Prisma client..."
