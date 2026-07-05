@@ -63,24 +63,48 @@ export default function SettingsPage() {
     setQrError('');
     setQrCode(null);
     setConnectionStatus('idle');
-    try {
-      const res = await fetch('/api/whatsapp/connect');
-      const data = await res.json();
-      if (!res.ok) {
-        setQrError(data.error || 'Failed to connect');
+
+    const poll = async (attempts = 0): Promise<void> => {
+      try {
+        const res = await fetch('/api/whatsapp/connect');
+        const data = await res.json();
+
+        if (!res.ok) {
+          setQrError(data.error || 'Failed to connect');
+          setConnectionStatus('error');
+          setQrLoading(false);
+          return;
+        }
+
+        if (data.status === 'connected') {
+          setConnectionStatus('connected');
+          setQrLoading(false);
+          return;
+        }
+
+        if (data.status === 'qrcode') {
+          setConnectionStatus('qrcode');
+          setQrCode(data.qrcode);
+          setQrLoading(false);
+          return;
+        }
+
+        // status === 'creating' or 'generating' — retry after 3s
+        if (attempts < 10) {
+          setTimeout(() => poll(attempts + 1), 3000);
+        } else {
+          setQrError('QR code taking too long. Please try again.');
+          setConnectionStatus('error');
+          setQrLoading(false);
+        }
+      } catch (err) {
+        setQrError('Failed to establish contact with server');
         setConnectionStatus('error');
-      } else if (data.status === 'connected') {
-        setConnectionStatus('connected');
-      } else if (data.status === 'qrcode') {
-        setConnectionStatus('qrcode');
-        setQrCode(data.qrcode);
+        setQrLoading(false);
       }
-    } catch (err) {
-      setQrError('Failed to establish contact with server');
-      setConnectionStatus('error');
-    } finally {
-      setQrLoading(false);
-    }
+    };
+
+    poll();
   };
 
   const fetchSettings = async () => {
