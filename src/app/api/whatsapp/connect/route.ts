@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session) {
@@ -29,31 +29,60 @@ export async function GET() {
       });
     }
 
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get('force') === 'true';
+
     const baseUrl = (dairy.whatsappPhoneId || 'http://localhost:8080').replace(/\/$/, '');
     const instanceName = dairy.whatsappBusinessId || 'krishna_dairy_instance';
     const apikey = dairy.whatsappApiKey || 'dairybook_global_apikey';
 
-    // 1. Check connection state
+    // Check if connected first to protect active sessions from force delete
+    let alreadyConnected = false;
     let instanceExists = false;
     try {
       const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
         headers: { apikey },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(3000),
       });
 
       if (stateRes.ok) {
         instanceExists = true;
         const stateData = await stateRes.json();
         if (stateData?.instance?.state === 'open') {
-          return NextResponse.json({ status: 'connected', message: 'WhatsApp is already connected!' });
+          alreadyConnected = true;
         }
       }
     } catch (err: any) {
-      console.error('[Evolution] Cannot reach server:', err.message);
-      return NextResponse.json(
-        { error: 'Cannot reach Evolution API server at ' + baseUrl },
-        { status: 503 }
-      );
+      console.error('[Evolution] Pre-check failed:', err.message);
+    }
+
+    if (alreadyConnected) {
+      return NextResponse.json({ status: 'connected', message: 'WhatsApp is already connected!' });
+    }
+
+    // Now we know it is not connected. If force=true, delete and recreate for a clean slate.
+    if (force) {
+      console.log(`[Evolution] Force reconnect requested. Deleting instance ${instanceName}...`);
+      try {
+        await fetch(`${baseUrl}/instance/delete/${instanceName}`, {
+          method: 'DELETE',
+          headers: { apikey },
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => {});
+        instanceExists = false;
+        // Wait a moment for delete operation to finish
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (err) {
+        console.error('[Evolution] Delete failed:', err);
+      }
+    }
+
+    // 1. Check connection state (if we didn't delete it, re-verify stateData)
+    if (instanceExists && !force) {
+      // It exists and is not open, let's keep going.
+    } else {
+      // If we deleted it, it doesn't exist anymore.
+      instanceExists = false;
     }
 
     // 2. Create instance if it doesn't exist

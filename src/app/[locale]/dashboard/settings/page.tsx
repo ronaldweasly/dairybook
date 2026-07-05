@@ -68,7 +68,8 @@ export default function SettingsPage() {
 
     const poll = async (attempts = 0): Promise<void> => {
       try {
-        const res = await fetch('/api/whatsapp/connect');
+        const url = attempts === 0 ? '/api/whatsapp/connect?force=true' : '/api/whatsapp/connect';
+        const res = await fetch(url);
         const data = await res.json();
 
         if (!res.ok) {
