@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
+const QRCode = dynamic(() => import('react-qr-code'), { ssr: false });
 import { 
   Settings, Landmark, ShieldAlert, Download, Upload, Save, CheckCircle, AlertCircle, BarChart3, Send,
   Store, Phone, MapPin, Hash, Globe, KeyRound, QrCode, CreditCard, ShieldCheck, ChevronDown, ChevronUp
