@@ -14,6 +14,8 @@ services:
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:postgres_password@localhost:5432/evolution?schema=public
+      # Cache configs (using local instead of Redis)
+      - CACHE_REDIS_ENABLED=false
       # Store session data locally
       - STORE_MESSAGES=true
       - STORE_MESSAGE_UP_TO=100
