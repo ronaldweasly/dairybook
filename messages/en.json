@@ -30,13 +30,13 @@
     "all": "All"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "customers": "Customers",
-    "dailyEntry": "Daily Entry",
-    "billing": "Billing",
-    "payments": "Payments",
-    "reports": "Reports",
-    "settings": "Settings"
+    "dashboard": "🏠 Home",
+    "customers": "1. 👥 Customers",
+    "dailyEntry": "2. 🥛 Enter Milk",
+    "billing": "3. 📄 Get Bills",
+    "payments": "4. 💰 Got Paid",
+    "reports": "5. 📊 Ledger",
+    "settings": "6. ⚙️ Settings"
   },
   "auth": {
     "login": "Login",
@@ -128,10 +128,10 @@
     "actions": "Actions",
     "viewPDF": "View PDF",
     "sendWhatsApp": "Send WhatsApp",
-    "statusPaid": "Paid",
-    "statusPending": "Pending",
-    "statusPartPaid": "Partially Paid",
-    "statusOverdue": "Overdue",
+    "statusPaid": "🟢 Paid",
+    "statusPending": "🔴 Unpaid",
+    "statusPartPaid": "🟡 Partial",
+    "statusOverdue": "🔴 Overdue",
     "milkAmount": "Milk Amount",
     "previousBalance": "Prev Balance",
     "advancePayment": "Advance Paid",

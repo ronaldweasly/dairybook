@@ -27,6 +27,7 @@ export default function SettingsPage() {
     bankIfsc: '',
     language: 'hi',
     invoicePrefix: 'DB',
+    pin: '',
   });
 
   const fetchSettings = async () => {
@@ -46,6 +47,7 @@ export default function SettingsPage() {
           bankIfsc: data.bankIfsc || '',
           language: data.language || 'hi',
           invoicePrefix: data.invoicePrefix || 'DB',
+          pin: '',
         });
       }
     } catch (err) {
@@ -307,6 +309,31 @@ export default function SettingsPage() {
                 <option value="hi">Hindi (हिंदी)</option>
                 <option value="en">English</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                {locale === 'hi' ? '🔑 नया 4-अंकों का लॉगिन पिन (Change 4-Digit PIN)' : '🔑 New 4-Digit Login PIN'}
+              </label>
+              <input
+                type="text"
+                name="pin"
+                maxLength={4}
+                pattern="\d*"
+                value={formData.pin}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setFormData(prev => ({ ...prev, pin: val }));
+                }}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-white text-sm"
+                placeholder={locale === 'hi' ? 'जैसे: 1234 (खाली छोड़ें यदि बदलना नहीं है)' : 'e.g. 1234 (leave blank to keep current)'}
+              />
+              <p className="text-[10px] text-slate-450 mt-1 font-semibold">
+                {locale === 'hi' 
+                  ? 'सुरक्षा नोट: लॉगिन करने के लिए पासवर्ड के स्थान पर इस 4-अंकों के पिन का उपयोग किया जाएगा।' 
+                  : 'Security Note: This 4-digit numeric PIN will be used instead of a password for easy login.'
+                }
+              </p>
             </div>
 
             <div className="pt-4">

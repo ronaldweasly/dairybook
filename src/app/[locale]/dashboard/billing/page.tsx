@@ -34,6 +34,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [bulkSendIndex, setBulkSendIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchInvoices = async () => {
@@ -176,24 +177,38 @@ export default function BillingPage() {
           </select>
         </div>
 
-        {/* Generate Button */}
-        <button
-          onClick={handleGenerateInvoices}
-          disabled={generating || loading}
-          className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 text-sm"
-        >
-          {generating ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              {t('billing.generating')}
-            </>
-          ) : (
-            <>
-              <Receipt className="h-4 w-4" />
-              {t('billing.generateInvoices')}
-            </>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Generate Button */}
+          <button
+            onClick={handleGenerateInvoices}
+            disabled={generating || loading}
+            className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 text-sm"
+          >
+            {generating ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                {t('billing.generating')}
+              </>
+            ) : (
+              <>
+                <Receipt className="h-4 w-4" />
+                {t('billing.generateInvoices')}
+              </>
+            )}
+          </button>
+
+          {/* Send All Bills Button */}
+          {invoices.length > 0 && (
+            <button
+              onClick={() => setBulkSendIndex(0)}
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-md transition-all cursor-pointer text-sm"
+            >
+              <Send className="h-4 w-4" />
+              {locale === 'hi' ? '📲 सभी को बिल भेजें (Send All)' : '📲 Send All Bills'}
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -256,8 +271,8 @@ export default function BillingPage() {
                       <td className="px-6 py-4">
                         <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                           inv.status === 'PAID'
-                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
-                            : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30'
+                            : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30'
                         }`}>
                           {inv.status === 'PAID' ? t('billing.statusPaid') : t('billing.statusPending')}
                         </span>
@@ -307,8 +322,8 @@ export default function BillingPage() {
                   </div>
                   <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                     inv.status === 'PAID'
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400'
-                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-455 border border-rose-100 dark:border-rose-900/30'
                   }`}>
                     {inv.status === 'PAID' ? t('billing.statusPaid') : t('billing.statusPending')}
                   </span>
@@ -349,6 +364,82 @@ export default function BillingPage() {
             ))}
           </div>
 
+        </div>
+      )}
+
+      {/* Bulk WhatsApp Bill Assistant Wizard */}
+      {bulkSendIndex !== null && invoices[bulkSendIndex] && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 p-6 space-y-6 flex flex-col items-center text-center">
+            {/* Icon */}
+            <div className="h-16 w-16 bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400 rounded-full flex items-center justify-center">
+              <Send className="h-8 w-8 animate-pulse" />
+            </div>
+
+            {/* Title & Stats */}
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">
+                {locale === 'hi' ? '📲 बिल भेजने का सहायक' : '📲 Send All Bills Assistant'}
+              </h3>
+              <p className="text-sm text-slate-500 mt-2 font-bold dark:text-slate-400">
+                {locale === 'hi' 
+                  ? `ग्राहक ${bulkSendIndex + 1} / ${invoices.length}` 
+                  : `Customer ${bulkSendIndex + 1} of ${invoices.length}`
+                }
+              </p>
+              <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-850 w-full max-w-xs mx-auto">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">
+                  {locale === 'hi' ? 'ग्राहक का नाम' : 'Customer Name'}
+                </span>
+                <span className="text-lg font-extrabold text-slate-900 dark:text-white block mt-0.5">
+                  {invoices[bulkSendIndex].customer.name}
+                </span>
+                <span className="text-xs text-slate-450 block mt-2">
+                  {locale === 'hi' ? `कुल देय: ₹${invoices[bulkSendIndex].grandTotal.toFixed(2)}` : `Due: ₹${invoices[bulkSendIndex].grandTotal.toFixed(2)}`}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="w-full space-y-3">
+              <button
+                onClick={() => {
+                  // Send WhatsApp message in new tab
+                  handleSendWhatsAppManual(invoices[bulkSendIndex]);
+                  // Advance index
+                  if (bulkSendIndex + 1 >= invoices.length) {
+                    setBulkSendIndex(null);
+                    // Show success
+                    setMessage({
+                      type: 'success',
+                      text: locale === 'hi' ? 'सभी बिल सफलतापूर्वक व्हाट्सएप पर शेयर कर दिए गए हैं!' : 'All bills successfully shared on WhatsApp!',
+                    });
+                  } else {
+                    setBulkSendIndex(bulkSendIndex + 1);
+                  }
+                }}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-lg rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Send className="h-5 w-5" />
+                {locale === 'hi' ? '📲 व्हाट्सएप पर भेजें (Send) →' : '📲 Send via WhatsApp →'}
+              </button>
+
+              <button
+                onClick={() => setBulkSendIndex(null)}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300 font-bold text-sm rounded-2xl transition-all cursor-pointer"
+              >
+                {locale === 'hi' ? 'रद्द करें (Cancel)' : 'Cancel'}
+              </button>
+            </div>
+
+            {/* Hint */}
+            <p className="text-[10px] text-slate-400 font-semibold max-w-xs leading-normal">
+              {locale === 'hi' 
+                ? 'निर्देश: ऊपर हरा बटन दबाएं। हर बार दबाने पर एक नया व्हाट्सएप टैब खुलेगा, और सहायक अगले ग्राहक पर आगे बढ़ जाएगा।' 
+                : 'Instruction: Click the green button. Each click opens a new WhatsApp tab, and the assistant moves to the next customer.'
+              }
+            </p>
+          </div>
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request: Request) {
   try {
@@ -45,10 +46,24 @@ export async function PUT(request: Request) {
       bankIfsc,
       language,
       invoicePrefix,
+      pin,
     } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Dairy name is required' }, { status: 400 });
+    }
+
+    // Update 4-digit PIN if provided
+    if (pin) {
+      const cleanPin = String(pin).trim();
+      if (!/^\d{4}$/.test(cleanPin)) {
+        return NextResponse.json({ error: 'PIN must be exactly 4 digits (0-9)' }, { status: 400 });
+      }
+      const hashedPassword = await bcrypt.hash(cleanPin, 10);
+      await prisma.user.update({
+        where: { id: session.userId },
+        data: { password: hashedPassword },
+      });
     }
 
     const updatedDairy = await prisma.dairy.update({

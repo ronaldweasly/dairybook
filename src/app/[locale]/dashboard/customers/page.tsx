@@ -526,6 +526,7 @@ export default function CustomersPage() {
                     step="0.1"
                     name="ratePerLiter"
                     required
+                    inputMode="decimal"
                     value={formData.ratePerLiter}
                     onChange={handleFormChange}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white text-sm"
@@ -542,6 +543,7 @@ export default function CustomersPage() {
                     type="number"
                     step="0.05"
                     name="morningQty"
+                    inputMode="decimal"
                     value={formData.morningQty}
                     onChange={handleFormChange}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white text-sm"
@@ -557,6 +559,7 @@ export default function CustomersPage() {
                     type="number"
                     step="0.05"
                     name="eveningQty"
+                    inputMode="decimal"
                     value={formData.eveningQty}
                     onChange={handleFormChange}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white text-sm"
