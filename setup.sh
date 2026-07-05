@@ -19,7 +19,7 @@ echo -e "${BLUE}===============================================${NC}"
 # 1. System updates & core dependencies
 echo -e "\n${GREEN}[1/9] Updating system packages & installing core tools...${NC}"
 sudo apt-get update
-sudo apt-get install -y curl git build-essential openssl unzip
+sudo apt-get install -y curl git build-essential openssl unzip postgresql postgresql-contrib
 
 # 2. Install Node.js v20 (LTS)
 echo -e "\n${GREEN}[2/9] Installing Node.js v20 (LTS)...${NC}"
@@ -57,6 +57,16 @@ else
   echo -e "Swap space is already configured."
 fi
 
+# Configure PostgreSQL database
+echo -e "\n${GREEN}Configuring local PostgreSQL database...${NC}"
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+# Create postgres user and dairybook database if they do not exist
+sudo -u postgres psql -c "CREATE USER postgres WITH PASSWORD 'postgres_password';" 2>/dev/null || true
+sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres_password';"
+sudo -u postgres psql -c "CREATE DATABASE dairybook OWNER postgres;" 2>/dev/null || true
+echo -e "${GREEN}PostgreSQL database configured successfully!${NC}"
+
 # 5. Configure Application Environment Variables (.env)
 echo -e "\n${GREEN}[5/9] Configuring environment variables (.env)...${NC}"
 if [ ! -f .env ]; then
@@ -64,7 +74,7 @@ if [ ! -f .env ]; then
   NEXTAUTH_SECRET=$(openssl rand -hex 32)
   
   cat <<EOT > .env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres_password@localhost:5432/dairybook?schema=public"
 NEXTAUTH_SECRET="$NEXTAUTH_SECRET"
 NEXTAUTH_URL="http://localhost:3000"
 EOT
