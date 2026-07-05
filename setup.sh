@@ -46,13 +46,13 @@ fi
 # 4. Prevent Out-of-Memory (OOM) on AWS Micro instances by configuring a Swap file
 echo -e "\n${GREEN}[4/9] Checking and configuring Swap space...${NC}"
 if [ $(free -m | awk '/^Swap:/{print $2}') -eq 0 ]; then
-  echo -e "No swap space detected. Creating 2GB swap file to prevent memory exhaustion..."
-  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  echo "No swap space detected. Creating 1.2GB swap file to prevent memory exhaustion..."
+  sudo fallocate -l 1.2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=1200
   sudo chmod 600 /swapfile
   sudo mkswap /swapfile
   sudo swapon /swapfile
   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-  echo -e "${GREEN}2GB Swap space enabled successfully!${NC}"
+  echo -e "${GREEN}1.2GB Swap space enabled successfully!${NC}"
 else
   echo -e "Swap space is already configured."
 fi
