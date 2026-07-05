@@ -36,6 +36,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [bulkSendIndex, setBulkSendIndex] = useState<number | null>(null);
+  const [bulkSending, setBulkSending] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [dairyName, setDairyName] = useState<string>('');
 
@@ -94,7 +95,7 @@ export default function BillingPage() {
     }
   };
 
-  const handleSendWhatsAppManual = (invoice: Invoice) => {
+  const handleSendWhatsAppManual = async (invoice: Invoice): Promise<boolean> => {
     const customerName = invoice.customer.name;
     const totalMilk = invoice.totalQty.toFixed(1);
     const avgRate = invoice.avgRate.toFixed(1);
@@ -144,11 +145,44 @@ export default function BillingPage() {
         `${publicPdfUrl}\n\n` +
         `Thank you! *${dairy}*`;
 
-    const cleanPhone = invoice.customer.whatsappNumber.replace(/\D/g, '');
-    const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    
-    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
-    window.open(waUrl, '_blank');
+    const phone = invoice.customer.whatsappNumber;
+
+    try {
+      setMessage(null);
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message: text })
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage({
+          type: 'success',
+          text: locale === 'hi' 
+            ? `${customerName} को व्हाट्सएप बिल सफलतापूर्वक भेज दिया गया!` 
+            : `WhatsApp bill successfully sent to ${customerName}!`
+        });
+        return true;
+      } else {
+        throw new Error(data.error || 'API failed');
+      }
+    } catch (err: any) {
+      console.warn('Evolution API failed, falling back to manual wa.me link:', err.message);
+      
+      const cleanPhone = phone.replace(/\D/g, '');
+      const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank');
+      
+      setMessage({
+        type: 'error',
+        text: locale === 'hi'
+          ? `एवोल्यूशन API असफल रहा। मैन्युअल भेजने के लिए व्हाट्सएप टैब खोला गया है।`
+          : `Evolution API failed. Opened WhatsApp tab for manual sending.`
+      });
+      return false;
+    }
   };
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -434,9 +468,11 @@ export default function BillingPage() {
             {/* Actions */}
             <div className="w-full space-y-3">
               <button
-                onClick={() => {
-                  // Send WhatsApp message in new tab
-                  handleSendWhatsAppManual(invoices[bulkSendIndex]);
+                onClick={async () => {
+                  setBulkSending(true);
+                  await handleSendWhatsAppManual(invoices[bulkSendIndex]);
+                  setBulkSending(false);
+                  
                   // Advance index
                   if (bulkSendIndex + 1 >= invoices.length) {
                     setBulkSendIndex(null);
@@ -449,10 +485,13 @@ export default function BillingPage() {
                     setBulkSendIndex(bulkSendIndex + 1);
                   }
                 }}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-lg rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2"
+                disabled={bulkSending}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-lg rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="h-5 w-5" />
-                {locale === 'hi' ? '📲 व्हाट्सएप पर भेजें (Send) →' : '📲 Send via WhatsApp →'}
+                {bulkSending 
+                  ? (locale === 'hi' ? '⏳ भेजा जा रहा है...' : '⏳ Sending...')
+                  : (locale === 'hi' ? '📲 व्हाट्सएप पर भेजें (Send) →' : '📲 Send via WhatsApp →')}
               </button>
 
               <button
