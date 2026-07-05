@@ -19,7 +19,7 @@ echo -e "${BLUE}===============================================${NC}"
 # 1. System updates & core dependencies
 echo -e "\n${GREEN}[1/9] Updating system packages & installing core tools...${NC}"
 sudo apt-get update
-sudo apt-get install -y curl git build-essential openssl
+sudo apt-get install -y curl git build-essential openssl unzip
 
 # 2. Install Node.js v20 (LTS)
 echo -e "\n${GREEN}[2/9] Installing Node.js v20 (LTS)...${NC}"
