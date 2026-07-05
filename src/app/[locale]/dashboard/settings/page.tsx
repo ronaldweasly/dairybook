@@ -845,45 +845,58 @@ export default function SettingsPage() {
 
             {showEvolutionAdvanced && (
               <form onSubmit={handleSaveSettings} className="w-full mt-4 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-slate-55/50 dark:bg-slate-900/40 space-y-4 animate-fadeIn">
+                {/* Server info badge */}
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-emerald-600 text-lg mt-0.5">✅</span>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                      {locale === 'hi' ? 'Evolution API इसी सर्वर पर चल रहा है' : 'Evolution API is running on this server'}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
+                      {locale === 'hi' ? 'नीचे की सेटिंग्स पहले से सही हैं — बदलने की जरूरत नहीं।' : 'The settings below are pre-configured — no changes needed.'}
+                    </p>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-350 mb-1">
-                    {locale === 'hi' ? 'एवोल्यूशन API बेस URL (URL)' : 'Evolution API Base URL'}
+                    {locale === 'hi' ? 'एवोल्यूशन API बेस URL' : 'Evolution API Base URL'}
                   </label>
                   <input
                     type="text"
                     name="whatsappPhoneId"
-                    value={formData.whatsappPhoneId}
+                    value={formData.whatsappPhoneId || 'http://localhost:8080'}
                     onChange={handleInputChange}
-                    placeholder="e.g. http://localhost:8080"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm"
+                    placeholder="http://localhost:8080"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-350 mb-1">
-                    {locale === 'hi' ? 'इंस्टेंस का नाम (Instance Name)' : 'Instance Name'}
+                    {locale === 'hi' ? 'इंस्टेंस का नाम' : 'Instance Name'}
                   </label>
                   <input
                     type="text"
                     name="whatsappBusinessId"
-                    value={formData.whatsappBusinessId}
+                    value={formData.whatsappBusinessId || 'krishna_dairy_instance'}
                     onChange={handleInputChange}
-                    placeholder="e.g. krishna_dairy_instance"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm"
+                    placeholder="krishna_dairy_instance"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm font-mono"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-350 mb-1">
-                    {locale === 'hi' ? 'एवोल्यूशन API की (apikey)' : 'Global API Key (apikey)'}
+                    {locale === 'hi' ? 'ग्लोबल API की' : 'Global API Key'}
                   </label>
                   <input
                     type="password"
                     name="whatsappApiKey"
-                    value={formData.whatsappApiKey}
+                    value={formData.whatsappApiKey || 'dairybook_global_apikey'}
                     onChange={handleInputChange}
-                    placeholder="e.g. apikey"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm"
+                    placeholder="dairybook_global_apikey"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-955 dark:text-white text-sm font-mono"
                   />
                 </div>
 
