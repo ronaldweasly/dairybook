@@ -17,12 +17,12 @@ echo -e "${BLUE}          Ubuntu AWS Deployment Setup           ${NC}"
 echo -e "${BLUE}===============================================${NC}"
 
 # 1. System updates & core dependencies
-echo -e "\n${GREEN}[1/8] Updating system packages & installing core tools...${NC}"
+echo -e "\n${GREEN}[1/9] Updating system packages & installing core tools...${NC}"
 sudo apt-get update
 sudo apt-get install -y curl git build-essential openssl
 
 # 2. Install Node.js v20 (LTS)
-echo -e "\n${GREEN}[2/8] Installing Node.js v20 (LTS)...${NC}"
+echo -e "\n${GREEN}[2/9] Installing Node.js v20 (LTS)...${NC}"
 if ! command -v node &> /dev/null; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
   sudo apt-get install -y nodejs
@@ -31,7 +31,7 @@ else
 fi
 
 # 3. Install Docker & Docker Compose (for Evolution API)
-echo -e "\n${GREEN}[3/8] Installing Docker & Docker Compose...${NC}"
+echo -e "\n${GREEN}[3/9] Installing Docker & Docker Compose...${NC}"
 if ! command -v docker &> /dev/null; then
   sudo apt-get install -y docker.io docker-compose
   sudo systemctl start docker
@@ -39,12 +39,22 @@ if ! command -v docker &> /dev/null; then
   # Add current user to docker group so docker commands can be run without sudo
   sudo usermod -aG docker $USER
   echo -e "${GREEN}Docker installed successfully!${NC}"
+# 4. Prevent Out-of-Memory (OOM) on AWS Micro instances by configuring a Swap file
+echo -e "\n${GREEN}[4/9] Checking and configuring Swap space...${NC}"
+if [ $(free -m | awk '/^Swap:/{print $2}') -eq 0 ]; then
+  echo -e "No swap space detected. Creating 2GB swap file to prevent memory exhaustion..."
+  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  echo -e "${GREEN}2GB Swap space enabled successfully!${NC}"
 else
-  echo -e "Docker is already installed."
+  echo -e "Swap space is already configured."
 fi
 
-# 4. Configure Application Environment Variables (.env)
-echo -e "\n${GREEN}[4/8] Configuring environment variables (.env)...${NC}"
+# 5. Configure Application Environment Variables (.env)
+echo -e "\n${GREEN}[5/9] Configuring environment variables (.env)...${NC}"
 if [ ! -f .env ]; then
   # Generate a secure 32-byte secret for NextAuth
   NEXTAUTH_SECRET=$(openssl rand -hex 32)
@@ -59,20 +69,20 @@ else
   echo -e "Existing .env config file found. Keeping current config."
 fi
 
-# 5. Install App Dependencies & Generate DB Schema
-echo -e "\n${GREEN}[5/8] Installing project dependencies & setting up database...${NC}"
+# 6. Install App Dependencies & Generate DB Schema
+echo -e "\n${GREEN}[6/9] Installing project dependencies & setting up database...${NC}"
 npm install
 
 echo -e "Running database migrations & generating Prisma client..."
 npx prisma db push
 npx prisma generate
 
-# 6. Build Next.js Production Bundle
-echo -e "\n${GREEN}[6/8] Building Next.js production code bundle...${NC}"
+# 7. Build Next.js Production Bundle
+echo -e "\n${GREEN}[7/9] Building Next.js production code bundle...${NC}"
 npm run build
 
-# 7. Start Evolution API Container Service
-echo -e "\n${GREEN}[7/8] Starting Evolution WhatsApp API docker container...${NC}"
+# 8. Start Evolution API Container Service
+echo -e "\n${GREEN}[8/9] Starting Evolution WhatsApp API docker container...${NC}"
 if [ -f docker-compose.yml ]; then
   # Make sure we run with sudo since docker permissions might need group refresh
   sudo docker-compose down || true
@@ -83,8 +93,8 @@ else
   exit 1
 fi
 
-# 8. Start Next.js App using PM2 Process Manager
-echo -e "\n${GREEN}[8/8] Installing PM2 and starting Next.js application server...${NC}"
+# 9. Start Next.js App using PM2 Process Manager
+echo -e "\n${GREEN}[9/9] Installing PM2 and starting Next.js application server...${NC}"
 if ! command -v pm2 &> /dev/null; then
   sudo npm install -g pm2
 fi
