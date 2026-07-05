@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ═══════════════════════════════════════
+// AUTH & USERS
+// ═══════════════════════════════════════
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  username      String    @unique
+  password      String    // bcrypt hashed
+  role          Role      @default(OWNER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  dairy         Dairy?    @relation("DairyOwner")
+  auditLogs     AuditLog[]
+}
+
+enum Role {
+  OWNER
+  EMPLOYEE
+}
+
+// ═══════════════════════════════════════
+// DAIRY SETTINGS
+// ═══════════════════════════════════════
+
+model Dairy {
+  id              String    @id @default(cuid())
+  name            String
+  address         String?
+  phone           String?
+  logoUrl         String?
+  gstNumber       String?
+  upiId           String?
+  bankName        String?
+  bankAccount     String?
+  bankIfsc        String?
+  currency        String    @default("INR")
+  language        String    @default("hi") // Default to Hindi as requested
+  invoicePrefix   String    @default("DB")
+  whatsappApiKey  String?
+  whatsappPhoneId String?
+  whatsappBusinessId String?
+
+  ownerId         String    @unique
+  owner           User      @relation("DairyOwner", fields: [ownerId], references: [id])
+
+  customers       Customer[]
+  invoices        Invoice[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ═══════════════════════════════════════
+// CUSTOMER
+// ═══════════════════════════════════════
+
+model Customer {
+  id              String    @id @default(cuid())
+  customerId      String    @unique  // Auto-generated: CUST-001
+  name            String
+  phone           String
+  whatsappNumber  String
+  address         String?
+  village         String?
+  milkType        MilkType  @default(COW)
+  morningQty      Float     @default(0)   // Default morning liters
+  eveningQty      Float     @default(0)   // Default evening liters
+  ratePerLiter    Float
+  startDate       DateTime  @default(now())
+  notes           String?
+  isActive        Boolean   @default(true)
+  isArchived      Boolean   @default(false)
+
+  dairyId         String
+  dairy           Dairy     @relation(fields: [dairyId], references: [id])
+
+  dailyEntries    DailyEntry[]
+  rateHistory     RateHistory[]
+  invoices        Invoice[]
+  payments        Payment[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([dairyId])
+  @@index([name])
+  @@index([phone])
+  @@index([customerId])
+}
+
+enum MilkType {
+  COW
+  BUFFALO
+  MIXED
+}
+
+// ═══════════════════════════════════════
+// RATE / PRICE MANAGEMENT
+// ═══════════════════════════════════════
+
+model RateHistory {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  milkType      MilkType
+  ratePerLiter  Float
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([customerId, effectiveFrom])
+}
+
+// ═══════════════════════════════════════
+// DAILY MILK ENTRY
+// ═══════════════════════════════════════
+
+model DailyEntry {
+  id            String    @id @default(cuid())
+  date          DateTime  @db.Date
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  morningQty    Float     @default(0)
+  eveningQty    Float     @default(0)
+  milkType      MilkType
+  ratePerLiter  Float
+  extraCharges  Float     @default(0)
+  discount      Float     @default(0)
+  remarks       String?
+  isHoliday     Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([customerId, date])
+  @@index([date])
+  @@index([customerId, date])
+}
+
+// ═══════════════════════════════════════
+// BILLING & INVOICES
+// ═══════════════════════════════════════
+
+model Invoice {
+  id              String    @id @default(cuid())
+  invoiceNumber   String    @unique   // INV-2026-07-001
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  dairyId         String
+  dairy           Dairy     @relation(fields: [dairyId], references: [id])
+
+  billingMonth    Int       // 1-12
+  billingYear     Int
+  periodStart     DateTime
+  periodEnd       DateTime
+
+  totalMorningQty Float
+  totalEveningQty Float
+  totalQty        Float
+  avgRate         Float
+  milkAmount      Float
+  extraCharges    Float     @default(0)
+  discount        Float     @default(0)
+  previousBalance Float     @default(0)
+  advancePayment  Float     @default(0)
+  grandTotal      Float
+  dueDate         DateTime
+
+  status          InvoiceStatus @default(GENERATED)
+  pdfUrl          String?
+  whatsappSentAt  DateTime?
+  whatsappStatus  WhatsAppStatus?
+
+  payments        Payment[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([customerId, billingMonth, billingYear])
+  @@index([dairyId, billingMonth, billingYear])
+}
+
+enum InvoiceStatus {
+  GENERATED
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+}
+
+enum WhatsAppStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+// ═══════════════════════════════════════
+// PAYMENTS
+// ═══════════════════════════════════════
+
+model Payment {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  invoiceId     String?
+  invoice       Invoice?  @relation(fields: [invoiceId], references: [id])
+
+  amount        Float
+  method        PaymentMethod
+  reference     String?   // UPI ref / cheque no
+  notes         String?
+  isAdvance     Boolean   @default(false)
+  paidAt        DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([invoiceId])
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
+// ═══════════════════════════════════════
+// AUDIT LOG
+// ═══════════════════════════════════════
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  action      String    // CREATE, UPDATE, DELETE
+  entity      String    // Customer, DailyEntry, Invoice, etc.
+  entityId    String
+  details     Json?     // Before/after snapshot
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
