@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { getLocalizedName } from '@/lib/translit';
+import { runDailyMilkAutosave } from '@/lib/automation';
 
 export async function GET(request: Request) {
   try {
@@ -10,6 +11,9 @@ export async function GET(request: Request) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Initialize/autosave today's milk entries if not already present
+    await runDailyMilkAutosave(session.dairyId);
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { Receipt, FileText, Send, Calendar, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Receipt, FileText, Send, Calendar, RefreshCw, CheckCircle, AlertCircle, IndianRupee } from 'lucide-react';
 
 interface Invoice {
   id: string;
@@ -36,6 +37,7 @@ export default function BillingPage() {
   const [generating, setGenerating] = useState(false);
   const [bulkSendIndex, setBulkSendIndex] = useState<number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [dairyName, setDairyName] = useState<string>('');
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -56,6 +58,14 @@ export default function BillingPage() {
   useEffect(() => {
     fetchInvoices();
   }, [month, year]);
+
+  // Fetch dairy name once on mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(d => { if (d?.name) setDairyName(d.name); })
+      .catch(() => {});
+  }, []);
 
   const handleGenerateInvoices = async () => {
     setGenerating(true);
@@ -89,38 +99,51 @@ export default function BillingPage() {
     const totalMilk = invoice.totalQty.toFixed(1);
     const avgRate = invoice.avgRate.toFixed(1);
     const grandTotal = invoice.grandTotal.toFixed(2);
+    const dairy = dairyName || (locale === 'hi' ? 'डेयरी' : 'Dairy');
     
-    const monthNames = [
+    const monthNamesEn = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    const monthHindi = [
+    const monthNamesHi = [
       'जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून',
       'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'
     ];
     
-    const monthName = locale === 'hi' 
-      ? monthHindi[invoice.billingMonth - 1] 
-      : monthNames[invoice.billingMonth - 1];
+    const monthName = locale === 'hi'
+      ? monthNamesHi[invoice.billingMonth - 1]
+      : monthNamesEn[invoice.billingMonth - 1];
     
     const publicPdfUrl = `${window.location.origin}/api/public/invoice/${invoice.id}`;
     
+    const sep = '━━━━━━━━━━━━━━━━';
+
     const text = locale === 'hi'
-      ? `नमस्ते ${customerName},\n\n` +
-        `कृष्णा डेयरी से ${monthName} ${invoice.billingYear} का बिल तैयार है।\n\n` +
-        `🥛 कुल दूध: ${totalMilk} लीटर\n` +
-        `💰 दर: ₹${avgRate}/लीटर\n` +
-        `📊 कुल राशि: ₹${grandTotal}\n\n` +
-        `कृपया इस लिंक से अपना इनवॉइस डाउनलोड करें:\n${publicPdfUrl}\n\n` +
-        `कृष्णा डेयरी को चुनने के लिए धन्यवाद! 🙏`
-      : `Hello ${customerName},\n\n` +
-        `Your dairy bill for ${monthName} ${invoice.billingYear} from Krishna Dairy is ready.\n\n` +
-        `🥛 Total Milk: ${totalMilk} Liters\n` +
-        `💰 Rate: ₹${avgRate}/Liter\n` +
-        `📊 Total Amount: ₹${grandTotal}\n\n` +
-        `Please view your detailed invoice here:\n${publicPdfUrl}\n\n` +
-        `Thank you for choosing Krishna Dairy! 🙏`;
-        
+      ? `*${dairy}*\n` +
+        `${sep}\n` +
+        `नमस्ते *${customerName}* जी,\n\n` +
+        `*${monthName} ${invoice.billingYear}* का दूध बिल तैयार है।\n\n` +
+        `*बिल विवरण:*\n` +
+        `• कुल दूध : *${totalMilk} लीटर*\n` +
+        `• दर       : *₹${avgRate}/लीटर*\n` +
+        `• कुल राशि : *₹${grandTotal}*\n\n` +
+        `${sep}\n` +
+        `बिल देखने के लिए नीचे दिए लिंक पर क्लिक करें:\n` +
+        `${publicPdfUrl}\n\n` +
+        `धन्यवाद! *${dairy}*`
+      : `*${dairy}*\n` +
+        `${sep}\n` +
+        `Hello *${customerName}*,\n\n` +
+        `Your milk bill for *${monthName} ${invoice.billingYear}* is ready.\n\n` +
+        `*Bill Summary:*\n` +
+        `• Total Milk  : *${totalMilk} Liters*\n` +
+        `• Rate        : *₹${avgRate}/Liter*\n` +
+        `• Total Amount: *₹${grandTotal}*\n\n` +
+        `${sep}\n` +
+        `Click below to view your invoice:\n` +
+        `${publicPdfUrl}\n\n` +
+        `Thank you! *${dairy}*`;
+
     const cleanPhone = invoice.customer.whatsappNumber.replace(/\D/g, '');
     const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     
@@ -134,14 +157,22 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('billing.title')}</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {locale === 'hi' 
-            ? 'सभी ग्राहकों के लिए मासिक बिल तैयार करें और व्हाट्सएप पर शेयर करें।' 
-            : 'Generate monthly invoices for all customers and share bills directly via WhatsApp.'}
-        </p>
+      {/* ── Tab Strip: Billing / Payments ── */}
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-0">
+        <Link
+          href={`/${locale}/dashboard/billing`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 -mb-px bg-transparent"
+        >
+          <Receipt className="h-4 w-4" />
+          {locale === 'hi' ? 'बिल' : 'Billing'}
+        </Link>
+        <Link
+          href={`/${locale}/dashboard/payments`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white -mb-px"
+        >
+          <IndianRupee className="h-4 w-4" />
+          {locale === 'hi' ? 'भुगतान' : 'Payments'}
+        </Link>
       </div>
 
       {/* Date Selectors & Generate Panel */}

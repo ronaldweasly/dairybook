@@ -1,7 +1,9 @@
-import { renderToStream } from '@react-pdf/renderer';
-import { InvoiceDocument } from '@/components/billing/InvoicePDF';
+import puppeteer from 'puppeteer';
 import prisma from '@/lib/prisma';
+import { generateInvoiceHtml } from '@/lib/invoiceHtml';
 import QRCode from 'qrcode';
+
+export const maxDuration = 60; // seconds — allow Puppeteer time to start
 
 type Params = Promise<{ id: string }>;
 
@@ -12,7 +14,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Fetch invoice, dairy and customer details (no authentication check since this is a public shareable link)
+    // Fetch invoice, dairy and customer details (no auth — public shareable link)
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -43,7 +45,6 @@ export async function GET(
       const upiLink = `upi://pay?pa=${invoice.dairy.upiId}&pn=${encodeURIComponent(
         invoice.dairy.name
       )}&am=${invoice.grandTotal.toFixed(2)}&cu=INR`;
-      
       try {
         qrCodeDataUrl = await QRCode.toDataURL(upiLink, { margin: 1 });
       } catch (err) {
@@ -53,18 +54,27 @@ export async function GET(
 
     const lang = invoice.dairy.language || 'hi';
 
-    // Render the React PDF component to stream
-    const stream = await renderToStream(
-      <InvoiceDocument 
-        invoice={invoice} 
-        entries={entries} 
-        qrCodeDataUrl={qrCodeDataUrl}
-        lang={lang}
-      />
-    );
+    // Generate the invoice HTML
+    const html = generateInvoiceHtml({ invoice, entries, qrCodeDataUrl, lang });
 
-    // Stream the PDF Response
-    return new Response(stream as any, {
+    // Use Puppeteer (Chromium) to render HTML → PDF with native Devanagari support
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '8mm', bottom: '8mm', left: '8mm', right: '8mm' },
+    });
+
+    await browser.close();
+
+    return new Response(Buffer.from(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="invoice-${invoice.invoiceNumber}.pdf"`,

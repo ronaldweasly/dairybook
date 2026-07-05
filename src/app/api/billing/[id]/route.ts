@@ -49,3 +49,42 @@ export async function GET(
     );
   }
 }
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Params }
+) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { status, whatsappSentAt } = body;
+
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { id },
+    });
+
+    if (!existingInvoice || existingInvoice.dairyId !== session.dairyId) {
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: {
+        status: status !== undefined ? status : existingInvoice.status,
+        whatsappSentAt: whatsappSentAt !== undefined ? new Date(whatsappSentAt) : existingInvoice.whatsappSentAt,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
+}

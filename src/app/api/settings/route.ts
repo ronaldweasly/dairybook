@@ -47,6 +47,9 @@ export async function PUT(request: Request) {
       language,
       invoicePrefix,
       pin,
+      whatsappApiKey,
+      whatsappPhoneId,
+      whatsappBusinessId,
     } = body;
 
     if (!name) {
@@ -79,6 +82,9 @@ export async function PUT(request: Request) {
         bankIfsc,
         language: language || 'hi',
         invoicePrefix: invoicePrefix || 'DB',
+        whatsappApiKey: whatsappApiKey ?? null,
+        whatsappPhoneId: whatsappPhoneId ?? null,
+        whatsappBusinessId: whatsappBusinessId ?? null,
       },
     });
 

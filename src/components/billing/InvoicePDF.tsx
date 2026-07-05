@@ -1,17 +1,21 @@
 import React from 'react';
+import path from 'path';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { getLocalizedName } from '@/lib/translit';
 
-// Register Noto Sans Devanagari font for supporting English and Hindi (Devanagari) characters
+// Register Noto Sans Devanagari font from LOCAL files to avoid network issues in PDF rendering
+// Fonts are stored in public/fonts/ and resolved using an absolute filesystem path
+const fontsDir = path.join(process.cwd(), 'public', 'fonts');
+
 Font.register({
   family: 'Noto Sans Devanagari',
   fonts: [
     {
-      src: 'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf',
+      src: path.join(fontsDir, 'NotoSansDevanagari-Regular.ttf'),
       fontWeight: 'normal',
     },
     {
-      src: 'https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf',
+      src: path.join(fontsDir, 'NotoSansDevanagari-Bold.ttf'),
       fontWeight: 'bold',
     },
   ],

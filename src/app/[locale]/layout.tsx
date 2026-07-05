@@ -23,6 +23,18 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+export const metadata = {
+  title: 'DairyBook',
+  description: 'Dairy Milk Collection Ledgers Book',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default async function LocaleLayout({
   children,
   params,

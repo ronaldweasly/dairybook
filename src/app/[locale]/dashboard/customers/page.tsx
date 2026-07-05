@@ -22,6 +22,7 @@ interface Customer {
   notes: string | null;
   isActive: boolean;
   isArchived: boolean;
+  billingDay: number;
 }
 
 export default function CustomersPage() {
@@ -53,6 +54,7 @@ export default function CustomersPage() {
     ratePerLiter: '',
     notes: '',
     isActive: true,
+    billingDay: '30',
   });
 
   const fetchCustomers = async () => {
@@ -91,6 +93,7 @@ export default function CustomersPage() {
       ratePerLiter: '',
       notes: '',
       isActive: true,
+      billingDay: '30',
     });
     setIsModalOpen(true);
   };
@@ -113,6 +116,7 @@ export default function CustomersPage() {
       ratePerLiter: String(c.ratePerLiter),
       notes: c.notes || '',
       isActive: c.isActive,
+      billingDay: String(c.billingDay || 30),
     });
     setIsModalOpen(true);
   };
@@ -329,6 +333,14 @@ export default function CustomersPage() {
                       <span>{customer.village}</span>
                     </div>
                   )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      {locale === 'hi' ? 'बिल तारीख:' : 'Billing Day:'}
+                    </span>
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                      {customer.billingDay || 30} {locale === 'hi' ? 'तारीख' : 'st/nd/rd/th'}
+                    </span>
+                  </div>
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 mt-3">
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('customers.milkType')}</p>
@@ -533,6 +545,26 @@ export default function CustomersPage() {
                     placeholder="e.g. 55"
                   />
                 </div>
+
+                {/* Billing Day of Month */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-350 mb-1">
+                    {locale === 'hi' ? 'मासिक बिल की तारीख (1-31)' : 'Billing Day of Month (1-31)'}
+                  </label>
+                  <select
+                    name="billingDay"
+                    value={formData.billingDay}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white text-sm cursor-pointer"
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        {day} {locale === 'hi' ? 'तारीख' : 'st/nd/rd/th'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
 
                 {/* Morning Qty */}
                 <div>

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { BarChart3, Download, FileSpreadsheet, Calendar, IndianRupee, ClipboardList, TrendingUp, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { BarChart3, Download, FileSpreadsheet, Calendar, IndianRupee, ClipboardList, TrendingUp, AlertCircle, Settings, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -146,68 +147,87 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">{t('reports.title')}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {locale === 'hi' 
-              ? 'बिक्री रिपोर्ट देखें, खाता बही विवरण डाउनलोड करें और डेटा एक्सपोर्ट करें।' 
-              : 'View detailed sales reports, download ledger statements, and export data.'}
-          </p>
+
+      {/* ── Tab Strip: Settings / WhatsApp API / Reports ── */}
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto whitespace-nowrap scrollbar-none flex-nowrap">
+        <Link
+          href={`/${locale}/dashboard/settings`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white -mb-px shrink-0"
+        >
+          <Settings className="h-4 w-4" />
+          {locale === 'hi' ? 'सेटिंग' : 'Settings'}
+        </Link>
+
+        <Link
+          href={`/${locale}/dashboard/settings?tab=whatsapp`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white -mb-px shrink-0"
+        >
+          <Send className="h-4 w-4" />
+          {locale === 'hi' ? 'व्हाट्सएप QR' : 'WhatsApp QR'}
+        </Link>
+
+        <Link
+          href={`/${locale}/dashboard/reports`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 -mb-px shrink-0"
+        >
+          <BarChart3 className="h-4 w-4" />
+          {locale === 'hi' ? 'रिपोर्ट' : 'Reports'}
+        </Link>
+      </div>
+
+      {/* Date Selector & Export Actions Banner */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-sm transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Date Selector */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Calendar className="h-5 w-5 text-slate-400 shrink-0" />
+          <select
+            value={month}
+            onChange={(e) => setMonth(parseInt(e.target.value))}
+            className="flex-1 sm:flex-initial px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white font-semibold text-sm cursor-pointer"
+          >
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {locale === 'hi' 
+                  ? ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1]
+                  : new Date(2000, m - 1, 1).toLocaleString('en', { month: 'long' })
+                }
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="flex-1 sm:flex-initial px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white font-semibold text-sm cursor-pointer"
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
-        
+
         {/* Export Buttons */}
-        <div className="flex items-center gap-2 text-sm font-semibold">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleExportExcel}
             disabled={loading || reportData.length === 0}
-            className="flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
-            <FileSpreadsheet className="h-4 w-4" />
-            {t('reports.exportExcel')}
+            <FileSpreadsheet className="h-4 w-4 shrink-0" />
+            <span>{t('reports.exportExcel')}</span>
           </button>
           
           <button
             onClick={handleExportCSV}
             disabled={loading || reportData.length === 0}
-            className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="h-4 w-4" />
-            {t('reports.exportCSV')}
+            <Download className="h-4 w-4 shrink-0" />
+            <span>{t('reports.exportCSV')}</span>
           </button>
         </div>
       </div>
 
-      {/* Date Selector Banner */}
-      <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-880 shadow-sm transition-colors">
-        <Calendar className="h-5 w-5 text-slate-400 shrink-0" />
-        <select
-          value={month}
-          onChange={(e) => setMonth(parseInt(e.target.value))}
-          className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white font-semibold text-sm cursor-pointer"
-        >
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {locale === 'hi' 
-                ? ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1]
-                : new Date(2000, m - 1, 1).toLocaleString('en', { month: 'long' })
-              }
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={year}
-          onChange={(e) => setYear(parseInt(e.target.value))}
-          className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-white font-semibold text-sm cursor-pointer"
-        >
-          {years.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-      </div>
 
       {/* Summary Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

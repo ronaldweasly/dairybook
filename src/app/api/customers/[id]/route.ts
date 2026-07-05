@@ -60,7 +60,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    const {
+      const {
       name,
       phone,
       whatsappNumber,
@@ -73,6 +73,7 @@ export async function PUT(
       notes,
       isActive,
       isArchived,
+      billingDay,
     } = body;
 
     const updatedRate = parseFloat(ratePerLiter);
@@ -101,6 +102,7 @@ export async function PUT(
           notes: notes ?? existingCustomer.notes,
           isActive: isActive !== undefined ? isActive : existingCustomer.isActive,
           isArchived: isArchived !== undefined ? isArchived : existingCustomer.isArchived,
+          billingDay: billingDay !== undefined ? parseInt(billingDay) : existingCustomer.billingDay,
         },
       });
 

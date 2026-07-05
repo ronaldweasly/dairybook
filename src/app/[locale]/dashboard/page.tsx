@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
   Percent,
-  Plus
+  Plus,
+  Send
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -28,6 +29,9 @@ interface DashboardData {
   pendingPayments: number;
   receivedPayments: number;
   chartData: { date: string; liters: number }[];
+  todayPendingBills: any[];
+  todaySentBills: any[];
+  dairyName?: string;
 }
 
 export default function DashboardPage() {
@@ -39,6 +43,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [dairyName, setDairyName] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -47,6 +52,13 @@ export default function DashboardPage() {
         if (res.ok) {
           const resData = await res.json();
           setData(resData);
+        }
+
+        // Fetch settings for dairy name
+        const setRes = await fetch('/api/settings');
+        if (setRes.ok) {
+          const setData = await setRes.json();
+          if (setData?.name) setDairyName(setData.name);
         }
       } catch (err) {
         console.error('Failed to load dashboard statistics', err);
@@ -57,6 +69,7 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, []);
+
 
   if (loading) {
     return (
@@ -123,6 +136,74 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* ── Background Auto-Billing & WhatsApp Logs ── */}
+      {((data?.todaySentBills && data.todaySentBills.length > 0) || (data?.todayPendingBills && data.todayPendingBills.length > 0)) && (
+        <div className="bg-indigo-50 border border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/30 rounded-3xl p-5 space-y-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 font-bold text-lg">
+              🤖
+            </span>
+            <div>
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-md">
+                {locale === 'hi' ? 'आज का आटोमैटिक बिल और व्हाट्सएप स्टेटस' : 'Auto-Billing & WhatsApp Logs'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {locale === 'hi'
+                  ? 'तय तारीखों के अनुसार बैकग्राउंड में तैयार और भेजे गए बिलों का विवरण:'
+                  : 'Bills generated and processed automatically in the background today:'}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {/* Sent successfully */}
+            {data?.todaySentBills && data.todaySentBills.map((inv: any) => (
+              <div 
+                key={inv.id}
+                className="flex items-center justify-between bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm text-xs font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-slate-900 dark:text-white font-bold">{inv.customer.name}</span>
+                  <span className="text-slate-400">({inv.invoiceNumber})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-905 dark:text-slate-300 font-bold">₹{inv.grandTotal.toFixed(2)}</span>
+                  <span className="text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                    {locale === 'hi' ? '📲 व्हाट्सएप चला गया' : '📲 Sent'}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* Pending / Unconfigured */}
+            {data?.todayPendingBills && data.todayPendingBills.map((inv: any) => (
+              <div 
+                key={inv.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm gap-2 text-xs font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                  <span className="text-slate-900 dark:text-white font-bold">{inv.customer.name}</span>
+                  <span className="text-slate-400">({inv.invoiceNumber})</span>
+                </div>
+                <div className="flex items-center gap-3 justify-between sm:justify-end">
+                  <span className="text-slate-900 dark:text-slate-300 font-bold">₹{inv.grandTotal.toFixed(2)}</span>
+                  <span className="text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                    {locale === 'hi' ? '⚠️ कनेक्ट नहीं हुआ' : '⚠️ Setup Required'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 sm:w-full mt-1 border-t border-slate-50 dark:border-slate-800/60 pt-1 leading-normal font-medium">
+                  {locale === 'hi'
+                    ? 'नोट: बैकग्राउंड में स्वतः भेजने के लिए सेटिंग में जाकर एवोल्यूशन बॉट QR कनेक्ट करें।'
+                    : 'Notice: Set up and scan QR in Settings > WhatsApp API tab to enable headless background auto-sending.'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Massive Call To Action for Daily Entries */}
       <div className="bg-emerald-600 dark:bg-emerald-800 text-white rounded-3xl p-6 shadow-md border border-emerald-500/20 flex flex-col items-center text-center space-y-4">

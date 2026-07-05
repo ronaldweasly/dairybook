@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
-import { IndianRupee, Landmark, Coins, CreditCard, PlusCircle, History, CheckCircle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { IndianRupee, Landmark, Coins, CreditCard, PlusCircle, History, CheckCircle, AlertCircle, Receipt } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -158,7 +159,27 @@ export default function PaymentsPage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="space-y-6">
+
+      {/* ── Tab Strip: Billing / Payments ── */}
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-0">
+        <Link
+          href={`/${locale}/dashboard/billing`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white -mb-px"
+        >
+          <Receipt className="h-4 w-4" />
+          {locale === 'hi' ? 'बिल' : 'Billing'}
+        </Link>
+        <Link
+          href={`/${locale}/dashboard/payments`}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 -mb-px bg-transparent"
+        >
+          <IndianRupee className="h-4 w-4" />
+          {locale === 'hi' ? 'भुगतान' : 'Payments'}
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
       {/* Record Payment Form (Left Panel) */}
       <div className="lg:col-span-1 space-y-6">
@@ -466,6 +487,8 @@ export default function PaymentsPage() {
             </div>
           )}
         </div>
+      </div>
+
       </div>
 
     </div>

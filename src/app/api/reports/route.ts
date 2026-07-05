@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import { runDailyMilkAutosave, runAutoBilling } from '@/lib/automation';
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +9,10 @@ export async function GET(request: Request) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Trigger daily milk autosave & auto-billing rules at request time
+    await runDailyMilkAutosave(session.dairyId);
+    await runAutoBilling(session.dairyId);
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'summary'; // 'summary', 'ledger'
@@ -106,6 +111,29 @@ export async function GET(request: Request) {
         });
       }
 
+      // Fetch auto-generated invoices for today
+      const pendingBills = await prisma.invoice.findMany({
+        where: {
+          dairyId: session.dairyId,
+          createdAt: { gte: today },
+          whatsappSentAt: null,
+        },
+        include: {
+          customer: true,
+        },
+      });
+
+      const sentBills = await prisma.invoice.findMany({
+        where: {
+          dairyId: session.dairyId,
+          createdAt: { gte: today },
+          whatsappSentAt: { not: null },
+        },
+        include: {
+          customer: true,
+        },
+      });
+
       return NextResponse.json({
         totalCustomers: customersCount,
         activeCustomers: activeCustomersCount,
@@ -115,6 +143,8 @@ export async function GET(request: Request) {
         pendingPayments: pendingAmount,
         receivedPayments: totalReceivedAmount,
         chartData,
+        todayPendingBills: pendingBills,
+        todaySentBills: sentBills,
       });
     }
 

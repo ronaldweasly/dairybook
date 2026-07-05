@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       eveningQty,
       ratePerLiter,
       notes,
+      billingDay,
     } = body;
 
     if (!name || !phone || !ratePerLiter) {
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
         ratePerLiter: parseFloat(ratePerLiter),
         notes,
         dairyId: session.dairyId,
+        billingDay: billingDay !== undefined ? parseInt(billingDay) : 30,
       },
     });
 

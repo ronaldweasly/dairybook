@@ -80,6 +80,7 @@ model Customer {
   notes           String?
   isActive        Boolean   @default(true)
   isArchived      Boolean   @default(false)
+  billingDay      Int       @default(30) // Day of the month to generate bill (1-31)
 
   dairyId         String
   dairy           Dairy     @relation(fields: [dairyId], references: [id])
