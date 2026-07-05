@@ -9,7 +9,7 @@ services:
     environment:
       - SERVER_PORT=8080
       - SERVER_URL=http://localhost:8080
-      - API_KEY=dairybook_global_apikey
+      - AUTHENTICATION_API_KEY=dairybook_global_apikey
       # Database configs (using local PostgreSQL)
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
