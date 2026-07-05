@@ -5,16 +5,15 @@ services:
     image: evoapicloud/evolution-api:v2.1.1
     container_name: evolution_api
     restart: always
-    ports:
-      - "8080:8080"
+    network_mode: "host"
     environment:
       - SERVER_PORT=8080
       - SERVER_URL=http://localhost:8080
       - API_KEY=dairybook_global_apikey
-      # Database configs (using SQLite)
+      # Database configs (using local PostgreSQL)
       - DATABASE_ENABLED=true
-      - DATABASE_CONNECTION_CLIENT=sqlite
-      - DATABASE_CONNECTION_FILENAME=database.sqlite
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:postgres_password@localhost:5432/evolution?schema=public
       # Store session data locally
       - STORE_MESSAGES=true
       - STORE_MESSAGE_UP_TO=100
