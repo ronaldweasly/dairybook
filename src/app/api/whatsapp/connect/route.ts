@@ -2,32 +2,6 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-async function fetchQR(baseUrl: string, instanceName: string, apikey: string): Promise<string | null> {
-  // Try /instance/connect first (v2 primary)
-  const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
-    headers: { apikey },
-  });
-  if (connectRes.ok) {
-    const d = await connectRes.json().catch(() => ({}));
-    if (d?.base64) return d.base64;
-    if (d?.code && d.code.length > 10) return d.code; // pairing code or base64 inline
-  }
-
-  // Fallback: try /instance/qrcode endpoint
-  const qrRes = await fetch(`${baseUrl}/instance/qrcode/${instanceName}`, {
-    headers: { apikey },
-  });
-  if (qrRes.ok) {
-    const q = await qrRes.json().catch(() => ({}));
-    if (q?.base64) return q.base64;
-    if (q?.code && q.code.length > 10) return q.code;
-  }
-
-  return null;
-}
-
 export async function GET() {
   try {
     const session = await getSession();
@@ -43,7 +17,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Dairy not found' }, { status: 404 });
     }
 
-    // Auto-populate default local Evolution API configurations if not present
+    // Auto-populate default Evolution API configurations if not present
     if (!dairy.whatsappPhoneId || !dairy.whatsappBusinessId || !dairy.whatsappApiKey) {
       dairy = await prisma.dairy.update({
         where: { id: session.dairyId },
@@ -59,54 +33,97 @@ export async function GET() {
     const instanceName = dairy.whatsappBusinessId || 'krishna_dairy_instance';
     const apikey = dairy.whatsappApiKey || 'dairybook_global_apikey';
 
-    // 1. Check if instance exists or create it
+    // 1. Check connection state
+    let instanceExists = false;
     try {
       const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
         headers: { apikey },
+        signal: AbortSignal.timeout(5000),
       });
 
-      if (!stateRes.ok) {
-        // Instance does not exist — create it
-        console.log(`[Evolution] Creating instance ${instanceName}...`);
-        const createRes = await fetch(`${baseUrl}/instance/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey },
-          body: JSON.stringify({ instanceName, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
-        });
-
-        if (!createRes.ok) {
-          const errData = await createRes.json().catch(() => ({}));
-          return NextResponse.json({ error: errData.message || 'Failed to create Evolution instance' }, { status: 500 });
-        }
-
-        // Wait for Baileys to initialise and generate QR
-        await sleep(3000);
-      } else {
+      if (stateRes.ok) {
+        instanceExists = true;
         const stateData = await stateRes.json();
         if (stateData?.instance?.state === 'open') {
           return NextResponse.json({ status: 'connected', message: 'WhatsApp is already connected!' });
         }
       }
+    } catch (err: any) {
+      console.error('[Evolution] Cannot reach server:', err.message);
+      return NextResponse.json(
+        { error: 'Cannot reach Evolution API server at ' + baseUrl },
+        { status: 503 }
+      );
+    }
+
+    // 2. Create instance if it doesn't exist
+    if (!instanceExists) {
+      console.log(`[Evolution] Creating instance ${instanceName}...`);
+      try {
+        const createRes = await fetch(`${baseUrl}/instance/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey },
+          body: JSON.stringify({ instanceName, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (!createRes.ok) {
+          const errData = await createRes.json().catch(() => ({}));
+          return NextResponse.json(
+            { error: 'Failed to create instance: ' + (errData?.message || createRes.status) },
+            { status: 500 }
+          );
+        }
+      } catch (err: any) {
+        return NextResponse.json({ error: 'Instance creation timed out' }, { status: 500 });
+      }
+
+      // Return immediately telling client to poll
+      return NextResponse.json({ status: 'creating', message: 'Instance created, generating QR...' });
+    }
+
+    // 3. Instance exists but not connected — fetch QR
+    try {
+      // Try /instance/connect
+      const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, {
+        headers: { apikey },
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (connectRes.ok) {
+        const d = await connectRes.json();
+        if (d?.base64 && d.base64.length > 10) {
+          return NextResponse.json({ status: 'qrcode', qrcode: d.base64 });
+        }
+        if (d?.code && d.code.length > 10) {
+          return NextResponse.json({ status: 'qrcode', qrcode: d.code });
+        }
+      }
+
+      // Fallback: /instance/qrcode
+      const qrRes = await fetch(`${baseUrl}/instance/qrcode/${instanceName}`, {
+        headers: { apikey },
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (qrRes.ok) {
+        const q = await qrRes.json();
+        if (q?.base64 && q.base64.length > 10) {
+          return NextResponse.json({ status: 'qrcode', qrcode: q.base64 });
+        }
+        if (q?.code && q.code.length > 10) {
+          return NextResponse.json({ status: 'qrcode', qrcode: q.code });
+        }
+      }
     } catch (err) {
-      return NextResponse.json({ error: 'Unable to connect to Evolution API server. Check URL.' }, { status: 500 });
+      // ignore timeout, fall through
     }
 
-    // 2. Fetch the QR code — retry up to 5 times with 2s delay between retries
-    let qr: string | null = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      qr = await fetchQR(baseUrl, instanceName, apikey);
-      if (qr) break;
-      console.log(`[Evolution] QR not ready yet (attempt ${attempt + 1}/5), retrying in 2s...`);
-      await sleep(2000);
-    }
+    // QR not ready yet — tell client to retry
+    return NextResponse.json({ status: 'generating', message: 'QR code is being generated, please wait...' });
 
-    if (!qr) {
-      return NextResponse.json({ error: 'QR code not ready yet. Please try again in a few seconds.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ status: 'qrcode', qrcode: qr });
   } catch (error: any) {
+    console.error('[Evolution] Unexpected error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
-
