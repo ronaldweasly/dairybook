@@ -39,6 +39,10 @@ if ! command -v docker &> /dev/null; then
   # Add current user to docker group so docker commands can be run without sudo
   sudo usermod -aG docker $USER
   echo -e "${GREEN}Docker installed successfully!${NC}"
+else
+  echo -e "Docker is already installed."
+fi
+
 # 4. Prevent Out-of-Memory (OOM) on AWS Micro instances by configuring a Swap file
 echo -e "\n${GREEN}[4/9] Checking and configuring Swap space...${NC}"
 if [ $(free -m | awk '/^Swap:/{print $2}') -eq 0 ]; then
