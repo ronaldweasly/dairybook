@@ -101,8 +101,8 @@ npm run build
 echo -e "\n${GREEN}[8/9] Starting Evolution WhatsApp API docker container...${NC}"
 if [ -f docker-compose.yml ]; then
   # Make sure we run with sudo since docker permissions might need group refresh
-  sudo docker-compose down || true
-  sudo docker-compose up -d
+  sudo docker compose down || true
+  sudo docker compose up -d
   echo -e "${GREEN}Evolution API container is running on port 8080!${NC}"
 else
   echo -e "${RED}Error: docker-compose.yml not found in the current directory!${NC}"
