@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import QRCode from 'react-qr-code';
 import { 
   Settings, Landmark, ShieldAlert, Download, Upload, Save, CheckCircle, AlertCircle, BarChart3, Send,
   Store, Phone, MapPin, Hash, Globe, KeyRound, QrCode, CreditCard, ShieldCheck, ChevronDown, ChevronUp
@@ -814,8 +815,13 @@ export default function SettingsPage() {
                   <h4 className="text-[11px] font-extrabold text-slate-450 uppercase tracking-wider">
                     {locale === 'hi' ? '📲 अपने phone से यह QR कोड स्कैन करें' : '📲 Scan this QR Code'}
                   </h4>
-                  <div className="bg-white p-3 rounded-xl border border-slate-100">
-                    <img src={qrCode} alt="WhatsApp QR Code" className="h-48 w-48 object-contain" />
+                  <div className="bg-white p-4 rounded-xl border border-slate-100">
+                    <QRCode
+                      value={qrCode}
+                      size={192}
+                      style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                      viewBox="0 0 256 256"
+                    />
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
                     {locale === 'hi'
